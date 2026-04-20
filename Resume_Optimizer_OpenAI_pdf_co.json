@@ -1,0 +1,637 @@
+{
+  "name": "Resume Optimizer - OpenAI + pdf.co",
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "// Get the structured resume data from Parse Analysis JSON node\nconst parsedData = $('Parse Analysis JSON1').item.json;\nconst resumeData = parsedData.improved_resume;\n\n// Get photo data from Prepare the Photo node\nlet photoHTML = '';\ntry {\n  const photoData = $('Prepare the Photo1').first().json;\n  if (photoData.has_photo && photoData.photo_base64) {\n    photoHTML = `\n      <div style=\"text-align: center; margin-bottom: 25px; margin-top: 0;\">\n        <img src=\"data:image/jpeg;base64,${photoData.photo_base64}\" \n             style=\"width: 110px; height: 110px; border-radius: 50%; object-fit: cover; border: 4px solid white; box-shadow: 0 3px 6px rgba(0,0,0,0.3);\" \n             alt=\"Profile Photo\">\n      </div>\n    `;\n  }\n} catch (e) {\n  console.log('No photo available');\n}\n\n// Get webhook data\nconst webhookData = $('Webhook1').item.json.body;\n\n// Build the HTML with icons and ONE PAGE layout\nconst html = `\n<!DOCTYPE html>\n<html>\n<head>\n  <meta charset=\"UTF-8\">\n  <style>\n    * {\n      margin: 0;\n      padding: 0;\n      box-sizing: border-box;\n    }\n    \n    @page {\n      size: A4;\n      margin: 0;\n    }\n    \n    body {\n      font-family: 'Segoe UI', 'Calibri', Arial, sans-serif;\n      font-size: 9pt;\n      line-height: 1.4;\n      color: #333;\n    }\n    \n    .container {\n      display: flex;\n      height: 297mm;\n      max-height: 297mm;\n      overflow: hidden;\n    }\n    \n    /* LEFT SIDEBAR - DARK BLUE */\n    .sidebar {\n      width: 32%;\n      background: linear-gradient(135deg, #1e3a5f 0%, #2c5282 100%);\n      padding: 25px 18px;\n      color: white;\n    }\n    \n    .sidebar h2 {\n      font-size: 10pt;\n      font-weight: 700;\n      color: white;\n      text-transform: uppercase;\n      letter-spacing: 2px;\n      margin: 20px 0 10px 0;\n      padding-bottom: 6px;\n      border-bottom: 2px solid white;\n    }\n    \n    .sidebar h2:first-of-type {\n      margin-top: 0;\n    }\n    \n    .sidebar p {\n      font-size: 8pt;\n      line-height: 1.5;\n      margin: 5px 0;\n      color: #e8f0f7;\n      padding-left: 20px;\n      position: relative;\n    }\n    \n    .sidebar p.with-icon::before {\n      position: absolute;\n      left: 0;\n      font-size: 10pt;\n    }\n    \n    .sidebar p.phone::before {\n      content: \"📞\";\n    }\n    \n    .sidebar p.email::before {\n      content: \"✉️\";\n    }\n    \n    .sidebar p.location::before {\n      content: \"📍\";\n    }\n    \n    .sidebar p.linkedin::before {\n      content: \"🔗\";\n    }\n    \n    .sidebar ul {\n      list-style: none;\n      padding: 0;\n    }\n    \n    .sidebar li {\n      font-size: 8pt;\n      line-height: 1.5;\n      margin: 5px 0;\n      color: #e8f0f7;\n      padding-left: 0;\n    }\n    \n    .sidebar strong {\n      font-weight: 700;\n      color: white;\n      display: block;\n      margin-top: 10px;\n      margin-bottom: 4px;\n      font-size: 8.5pt;\n    }\n    \n    .sidebar a {\n      color: #a8d0f0;\n      text-decoration: none;\n      word-break: break-all;\n      font-size: 7.5pt;\n    }\n    \n    /* RIGHT MAIN CONTENT */\n    .main-content {\n      width: 68%;\n      padding: 25px 30px;\n      background: white;\n    }\n    \n    .header {\n      margin-bottom: 18px;\n      padding-bottom: 10px;\n      border-bottom: 3px solid #1e3a5f;\n    }\n    \n    .name {\n      font-size: 24pt;\n      font-weight: 700;\n      color: #1e3a5f;\n      text-transform: uppercase;\n      letter-spacing: 3px;\n      margin-bottom: 3px;\n    }\n    \n    .job-title {\n      font-size: 10pt;\n      font-weight: 600;\n      color: #666;\n      text-transform: uppercase;\n      letter-spacing: 1.5px;\n    }\n    \n    .main-content h2 {\n      font-size: 11pt;\n      font-weight: 700;\n      color: #1e3a5f;\n      text-transform: uppercase;\n      letter-spacing: 2px;\n      margin: 15px 0 10px 0;\n      padding-bottom: 5px;\n      border-bottom: 2px solid #1e3a5f;\n      position: relative;\n      padding-left: 25px;\n    }\n    \n    .main-content h2::before {\n      position: absolute;\n      left: 0;\n      font-size: 13pt;\n    }\n    \n    .main-content h2.profile::before {\n      content: \"👤\";\n    }\n    \n    .main-content h2.experience::before {\n      content: \"💼\";\n    }\n    \n    .main-content h2.education::before {\n      content: \"🎓\";\n    }\n    \n    .main-content h2.projects::before {\n      content: \"🚀\";\n    }\n    \n    .main-content h3 {\n      font-size: 10pt;\n      font-weight: 700;\n      color: #1e3a5f;\n      margin-top: 10px;\n      margin-bottom: 2px;\n    }\n    \n    .main-content h4 {\n      font-size: 9pt;\n      font-weight: 600;\n      color: #2c5282;\n      margin-top: 8px;\n      margin-bottom: 2px;\n    }\n    \n    .date-range {\n      font-size: 8pt;\n      color: #888;\n      text-transform: uppercase;\n      font-weight: 600;\n      margin-bottom: 3px;\n      float: right;\n      font-style: italic;\n    }\n    \n    .company {\n      font-size: 9pt;\n      color: #666;\n      font-style: italic;\n      margin-bottom: 6px;\n    }\n    \n    .main-content p {\n      font-size: 9pt;\n      line-height: 1.5;\n      margin: 6px 0;\n      text-align: justify;\n      color: #444;\n    }\n    \n    .main-content ul {\n      margin: 5px 0 10px 18px;\n      padding: 0;\n    }\n    \n    .main-content li {\n      font-size: 8.5pt;\n      line-height: 1.5;\n      margin: 3px 0;\n      color: #444;\n    }\n    \n    .section {\n      margin-bottom: 15px;\n      clear: both;\n    }\n    \n    .experience-item {\n      margin-bottom: 12px;\n      position: relative;\n    }\n  </style>\n</head>\n<body>\n  <div class=\"container\">\n    <!-- LEFT SIDEBAR -->\n    <div class=\"sidebar\">\n      ${photoHTML}\n      \n      <h2>CONTACT</h2>\n      ${resumeData.contact.phone ? `<p class=\"with-icon phone\">${resumeData.contact.phone}</p>` : ''}\n      <p class=\"with-icon email\">${resumeData.contact.email}</p>\n      ${resumeData.contact.location ? `<p class=\"with-icon location\">${resumeData.contact.location}</p>` : ''}\n      ${resumeData.contact.linkedin ? `<p class=\"with-icon linkedin\"><a href=\"${resumeData.contact.linkedin}\">${resumeData.contact.linkedin.replace('https://', '').replace('http://', '')}</a></p>` : ''}\n      \n      <h2>SKILLS</h2>\n      ${resumeData.skills.technical && resumeData.skills.technical.length > 0 ? `\n        <strong>Technical Skills:</strong>\n        <p>${resumeData.skills.technical.join(', ')}</p>\n      ` : ''}\n      \n      ${resumeData.skills.tools && resumeData.skills.tools.length > 0 ? `\n        <strong>Tools & Technologies:</strong>\n        <p>${resumeData.skills.tools.join(', ')}</p>\n      ` : ''}\n      \n      ${resumeData.skills.soft_skills && resumeData.skills.soft_skills.length > 0 ? `\n        <strong>Soft Skills:</strong>\n        <p>${resumeData.skills.soft_skills.join(', ')}</p>\n      ` : ''}\n      \n      ${resumeData.certifications && resumeData.certifications.length > 0 ? `\n        <h2>CERTIFICATIONS</h2>\n        <ul>\n          ${resumeData.certifications.slice(0, 6).map(cert => `<li>• ${cert}</li>`).join('')}\n        </ul>\n      ` : ''}\n      \n      <h2>LANGUAGES</h2>\n      <p>• English (Fluent)</p>\n      <p>• Hindi (Native)</p>\n      <p>• Marathi (Native)</p>\n    </div>\n    \n    <!-- RIGHT MAIN CONTENT -->\n    <div class=\"main-content\">\n      <div class=\"header\">\n        <div class=\"name\">${resumeData.contact.name.toUpperCase()}</div>\n        <div class=\"job-title\">${webhookData.job_role ? webhookData.job_role.toUpperCase() : 'PROFESSIONAL'}</div>\n      </div>\n      \n      <div class=\"section\">\n        <h2 class=\"profile\">PROFILE</h2>\n        <p>${resumeData.summary}</p>\n      </div>\n      \n      ${resumeData.experience && resumeData.experience.length > 0 ? `\n        <div class=\"section\">\n          <h2 class=\"experience\">WORK EXPERIENCE</h2>\n          ${resumeData.experience.slice(0, 2).map(exp => `\n            <div class=\"experience-item\">\n              <div class=\"date-range\">${exp.duration.toUpperCase()}</div>\n              <h3>${exp.title}</h3>\n              <div class=\"company\">${exp.company}</div>\n              <ul>\n                ${exp.achievements.slice(0, 3).map(ach => `<li>${ach}</li>`).join('')}\n              </ul>\n            </div>\n          `).join('')}\n        </div>\n      ` : ''}\n      \n      ${resumeData.education && resumeData.education.length > 0 ? `\n        <div class=\"section\">\n          <h2 class=\"education\">EDUCATION</h2>\n          ${resumeData.education.slice(0, 2).map(edu => `\n            <div style=\"margin-bottom: 10px;\">\n              <div class=\"date-range\">${edu.year}</div>\n              <h3>${edu.degree}</h3>\n              <div class=\"company\">${edu.institution}</div>\n              ${edu.details ? `<p style=\"font-size: 8.5pt;\">${edu.details}</p>` : ''}\n            </div>\n          `).join('')}\n        </div>\n      ` : ''}\n      \n      ${resumeData.projects && resumeData.projects.length > 0 ? `\n        <div class=\"section\">\n          <h2 class=\"projects\">PROJECTS</h2>\n          ${resumeData.projects.slice(0, 3).map(proj => `\n            <div style=\"margin-bottom: 10px;\">\n              <h4>${proj.name}</h4>\n              <p style=\"font-size: 8.5pt;\">${proj.description}</p>\n              ${proj.technologies && proj.technologies.length > 0 ? `<p style=\"font-size: 8pt;\"><strong>Tech:</strong> ${proj.technologies.join(', ')}</p>` : ''}\n            </div>\n          `).join('')}\n        </div>\n      ` : ''}\n    </div>\n  </div>\n</body>\n</html>\n`;\n\nreturn [{\n  json: {\n    html_content: html,\n    markdown_resume: html,\n    analysis: parsedData.analysis,\n    improved_resume: resumeData,\n    email: webhookData.user_email,\n    job_role: webhookData.job_role,\n    company_name: webhookData.company_name\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -704,
+        1936
+      ],
+      "id": "8fed395f-90e8-42b5-8dda-70e85005f72a",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "resume-upload",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "fc05fa62-2a60-40ea-8366-3109691bbf17",
+      "name": "Webhook1",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -3392,
+        1936
+      ],
+      "webhookId": "resume-upload-webhook"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $binary.resume_file.mimeType }}",
+              "operation": "contains",
+              "value2": "pdf"
+            }
+          ]
+        }
+      },
+      "id": "09557fd7-8b74-4724-adce-ce5b2ead0574",
+      "name": "If PDF1",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -3040,
+        1968
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "resume_file",
+        "options": {}
+      },
+      "id": "791443c5-9785-4ea9-b248-a9767fb27668",
+      "name": "Extract PDF Text1",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        -2736,
+        1936
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "text",
+        "binaryPropertyName": "resume_file",
+        "options": {}
+      },
+      "id": "ca331449-c498-4ff7-adbb-28122807a207",
+      "name": "Extract DOCX Text1",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        -1280,
+        2512
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// Get all input items\nconst items = $input.all();\n\nif (!items || items.length === 0) {\n  throw new Error('No input data received from OpenAI');\n}\n\nconst item = items[0].json;\n\n// Get the response content from OpenAI\nlet responseContent;\n\nif (item.content) {\n  responseContent = item.content;\n} else if (item.choices && item.choices.length > 0) {\n  responseContent = item.choices[0].message.content;\n} else if (item.message && item.message.content) {\n  responseContent = item.message.content;\n} else {\n  throw new Error('Unexpected OpenAI response format');\n}\n\nconsole.log('=== RAW OPENAI RESPONSE ===');\nconsole.log('Response length:', responseContent.length);\nconsole.log('First 500 chars:', responseContent.substring(0, 500));\nconsole.log('Last 500 chars:', responseContent.substring(Math.max(0, responseContent.length - 500)));\n\n// Clean the response aggressively\nlet cleanResponse = responseContent.trim();\n\n// Remove markdown code blocks\ncleanResponse = cleanResponse.replace(/```json\\s*/gi, '');\ncleanResponse = cleanResponse.replace(/```\\s*/g, '');\n\n// Remove any text before first {\nconst firstBrace = cleanResponse.indexOf('{');\nif (firstBrace !== -1) {\n  cleanResponse = cleanResponse.substring(firstBrace);\n}\n\n// Remove any text after last }\nconst lastBrace = cleanResponse.lastIndexOf('}');\nif (lastBrace !== -1) {\n  cleanResponse = cleanResponse.substring(0, lastBrace + 1);\n}\n\n// Fix common JSON issues\ncleanResponse = cleanResponse\n  .replace(/,(\\s*[}\\]])/g, '$1')  // Remove trailing commas\n  .replace(/\\n/g, ' ')  // Remove newlines\n  .replace(/\\r/g, '')  // Remove carriage returns\n  .replace(/\\t/g, ' ')  // Replace tabs with spaces\n  .replace(/\\s+/g, ' ')  // Collapse multiple spaces\n  .trim();\n\nconsole.log('=== CLEANED RESPONSE ===');\nconsole.log('Cleaned length:', cleanResponse.length);\nconsole.log('First 300 chars:', cleanResponse.substring(0, 300));\n\n// Try to parse\nlet parsedData;\ntry {\n  parsedData = JSON.parse(cleanResponse);\n  console.log('✅ JSON parsed successfully');\n} catch (parseError) {\n  console.error('❌ JSON parse failed:', parseError.message);\n  console.error('Failed at position:', parseError.message.match(/position (\\d+)/)?.[1]);\n  \n  // Try to find the problematic area\n  const errorPos = parseInt(parseError.message.match(/position (\\d+)/)?.[1] || '0');\n  const contextStart = Math.max(0, errorPos - 100);\n  const contextEnd = Math.min(cleanResponse.length, errorPos + 100);\n  console.error('Context around error:', cleanResponse.substring(contextStart, contextEnd));\n  \n  // Last resort: try to extract JSON objects manually\n  try {\n    // Find analysis and improved_resume sections separately\n    const analysisMatch = cleanResponse.match(/\"analysis\"\\s*:\\s*\\{[^}]+\\}/);\n    const improvedResumeMatch = cleanResponse.match(/\"improved_resume\"\\s*:\\s*\\{[\\s\\S]+\\}/);\n    \n    if (analysisMatch && improvedResumeMatch) {\n      const reconstructed = `{${analysisMatch[0]},${improvedResumeMatch[0]}}`;\n      parsedData = JSON.parse(reconstructed);\n      console.log('⚠️ JSON reconstructed from parts');\n    } else {\n      throw new Error('Could not reconstruct valid JSON. Raw response: ' + cleanResponse.substring(0, 1000));\n    }\n  } catch (reconstructError) {\n    throw new Error('Failed to parse JSON after all attempts. Original error: ' + parseError.message + '. Response preview: ' + cleanResponse.substring(0, 500));\n  }\n}\n\n// Validate structure\nif (!parsedData.analysis) {\n  throw new Error('Parsed JSON is missing \"analysis\" field');\n}\n\nif (!parsedData.improved_resume) {\n  throw new Error('Parsed JSON is missing \"improved_resume\" field');\n}\n\nif (!parsedData.improved_resume.contact) {\n  throw new Error('Parsed JSON is missing \"improved_resume.contact\" field');\n}\n\nconsole.log('✅ JSON validation passed');\nconsole.log('Analysis score:', parsedData.analysis.alignment_score);\nconsole.log('Candidate name:', parsedData.improved_resume.contact.name);\n\n// Return both analysis and improved resume\nreturn [{ json: parsedData }];"
+      },
+      "id": "055e03c5-07df-46c3-bb35-4197bfc1ea63",
+      "name": "Parse Analysis JSON1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1184,
+        1920
+      ]
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "chatgpt-4o-latest",
+          "mode": "list",
+          "cachedResultName": "CHATGPT-4O-LATEST"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=<context>\n<candidate_information>\nName: {{ $json.contact.name }}\nEmail: {{ $json.contact.email }}\nPhone: {{ $json.contact.phone }}\nLocation: {{ $json.contact.location }}\nLinkedIn: {{ $json.contact.linkedin }}\nPortfolio: {{ $json.contact.portfolio }}\n</candidate_information>\n<resume_content>\n<summary>\n{{ $json.summary }}\n</summary>\n<experience>\n{{ JSON.stringify($json.experience, null, 2) }}\n</experience>\n<education>\n{{ JSON.stringify($json.education, null, 2) }}\n</education>\n<skills>\n{{ JSON.stringify($json.skills, null, 2) }}\n</skills>\n<projects>\n{{ JSON.stringify($json.projects, null, 2) }}\n</projects>\n<certifications>\n{{ JSON.stringify($json.certifications, null, 2) }}\n</certifications>\n</resume_content>\n<target_position>\nRole: {{ $('Webhook1').item.json.body.job_role }}\nCompany: {{ $('Webhook1').item.json.body.company_name }}\n</target_position>\n</context>\n<instructions>\nTransform this structured data into professional markdown with these requirements:\n<formatting_rules>\n\nUse # for name (H1), ## for section headers (H2), ### for job titles (H3)\nUse bullet points (- or *) for achievements and responsibilities\nBold (text) important keywords, metrics, and achievements\nKeep formatting ATS-friendly - no tables, no complex layouts\nUse consistent date formatting throughout\nOrganize sections logically and with proper spacing\nMake content visually scannable with proper hierarchy\nONLY include sections that have actual data - skip empty sections\n</formatting_rules>\n\n<content_guidelines>\n\nHighlight quantifiable achievements with bold\nEnsure keywords from target role are visible and prominent\nUse professional language and tone\nMaintain clean, readable structure\nAdd appropriate spacing between sections\nDO NOT add placeholder text for missing sections\nUSE ONLY the actual data provided above\n</content_guidelines>\n</instructions>\n\n<output_format>\nReturn ONLY the markdown content. No explanations. No preamble. No code blocks.\nStart directly with the markdown formatted resume using ONLY the actual data provided.\n</output_format>\n<data_usage_rules>\nCRITICAL:\n\nUse ONLY the data provided in the context above\nDO NOT create example sections or placeholder content\nIf experience data is missing, skip the experience section\nIf skills are empty, skip the skills section\nFormat what exists, don't invent what doesn't\nThe name, email, and contact info MUST match exactly what was provided\n</data_usage_rules>\n\n<critical_reminder>\n\nNO markdown code blocks in your response\nNO \"Here is the formatted resume:\" or similar text\nSTART immediately with the markdown content\nUse clean, professional formatting\nDO NOT MAKE UP ANY DATA - USE ONLY WHAT WAS PROVIDED\nDO NOT ADD EXAMPLE TEXT OR PLACEHOLDERS\n</critical_reminder>\n"
+            },
+            {
+              "content": "=<role>\nYou are an expert resume formatter specializing in creating ATS-optimized, visually appealing resume layouts. You transform structured data into professional markdown that converts beautifully to PDF while maintaining ATS compatibility.\n</role>\n<expertise>\n\nATS-friendly formatting (no tables, no complex layouts)\nVisual hierarchy and readability\nProfessional typography and spacing\nKeyword placement and density optimization\nClean markdown syntax\n</expertise>\n\n<task>\nConvert structured resume data into professional, clean markdown format that is both ATS-compatible and visually appealing when rendered.\n</task>\n<critical_rules>\n\nUse ONLY standard markdown (headers, bold, bullets)\nNO tables, NO columns, NO complex formatting\nBold important keywords and metrics\nMaintain logical flow: Contact → Summary → Experience → Education → Skills → Projects → Certifications\nReturn ONLY markdown content - no explanations, no preambles\nUSE ONLY THE ACTUAL DATA PROVIDED - DO NOT MAKE UP ANY INFORMATION\nDO NOT use placeholder text or example data\n</critical_rules>\n\n<anti_hallucination_rules>\n\nDO NOT add sample text like \"Lorem ipsum\" or \"Example text here\"\nDO NOT create placeholder sections if data is missing\nDO NOT invent experience, skills, or projects not in the provided data\nIf a section has no data, skip it entirely\nONLY format the actual data provided in the input\n</anti_hallucination_rules>\n\n",
+              "role": "system"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e2c4a6d1-fe78-4052-ad4e-724c4ff9444e",
+      "name": "OpenAI - Format to Markdown1",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.3,
+      "position": [
+        -1024,
+        1920
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "<REDACTED_CREDENTIAL_ID>", "name": "<REDACTED_CREDENTIAL_NAME>"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.pdf.co/v1/pdf/convert/from/html",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "x-api-key",
+              "value": "<REDACTED_EMAIL>_<PDFCO_API_KEY>"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "html",
+              "value": "={{ $json.markdown_resume }}"
+            },
+            {
+              "name": "name",
+              "value": "resume.pdf"
+            },
+            {
+              "name": "margins",
+              "value": "10mm 10mm 10mm 10mm"
+            },
+            {
+              "name": "paperSize",
+              "value": "A4"
+            },
+            {
+              "name": "Orientation",
+              "value": "Portrait"
+            },
+            {
+              "name": "printBackground",
+              "value": "true"
+            },
+            {
+              "name": "async",
+              "value": "false"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "be580f07-6094-45e0-8ee8-84a49e21dbee",
+      "name": "Gamma - Create Document1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        -512,
+        1936
+      ],
+      "notes": "⚠️ CONFIGURE YOUR GAMMA API ENDPOINT AND AUTH"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "=<REDACTED_EMAIL>_<PDFCO_API_KEY>"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "html",
+              "value": "={{ $('OpenAI - Format to Markdown1').item.json.message.content }}"
+            },
+            {
+              "name": "name",
+              "value": "={{ $json.name }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "id": "4ef9fda1-a97f-4157-bbf5-c558600d5688",
+      "name": "Download PDF from Gamma1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        -336,
+        1936
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "gammaApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "=<REDACTED_EMAIL>_<PDFCO_API_KEY>"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "id": "ce354483-3d57-4637-8c8e-acf3f2d97575",
+      "name": "Download DOCX from Gamma1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        -1040,
+        2448
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "fromEmail": "<REDACTED_EMAIL>",
+        "toEmail": "={{ $('Webhook1').item.json.body.user_email }}",
+        "subject": "Your Optimized Resume is Ready! 🎯",
+        "text": "=Hi {{ $('Parse Analysis JSON1').item.json.improved_resume.contact.name }},\n\nGreat news! Your resume has been optimized for the {{ $('Webhook1').item.json.body.job_role }} position at {{ $('Webhook1').item.json.body.company_name }}\n\n📊 Analysis Results:\n- Alignment Score:{{ $('Parse Analysis JSON1').item.json.analysis.alignment_score }}%\n- Keywords Matched: {{ $('Parse Analysis JSON1').item.json.analysis.matching_keywords.length }}\n- Missing Keywords Added:{{ $('Parse Analysis JSON1').item.json.analysis.missing_keywords.length }}\n\n✨ Your optimized resume is attached in both PDF format.\n\nKey Improvements Made:\n{{ $(\"Parse Analysis JSON1\").item.json.improved_resume.improvements_made.join('\\n• ') }}\n\nTips for Your Application:\n1. Review the resume and customize it further if needed\n2. Use keywords from the job description naturally in your cover letter\n3. Tailor your LinkedIn profile to match your updated resume\n\nGood luck with your application!\n\nBest regards,\nResume Optimizer Team",
+        "options": {
+          "attachments": "data"
+        }
+      },
+      "id": "ac454c3f-bcb4-47c8-8139-e40023a24f78",
+      "name": "Send Email with Attachments1",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [
+        -128,
+        1936
+      ],
+      "webhookId": "<REDACTED_WEBHOOK_ID>",
+      "credentials": {
+        "smtp": {
+          "id": "<REDACTED_CREDENTIAL_ID>", "name": "<REDACTED_CREDENTIAL_NAME>"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify({\n  \"status\": \"success\",\n  \"message\": \"Resume successfully optimized\",\n  \"pdf_url\": $('Gamma - Create Document1').item.json.url || \"\",\n  \"email_sent_to\": $('Webhook1').item.json.body.user_email || \"\",\n  \"candidate_name\": $('Parse Analysis JSON1').item.json.improved_resume.contact.name || \"User\",\n  \"html_content\": $('Code in JavaScript').item.json.html_content || \"\"\n}) }}",
+        "options": {}
+      },
+      "id": "3f30cf48-b83c-42da-9104-b74b40f0300c",
+      "name": "Respond to Webhook3",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        80,
+        1952
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extract photo from the webhook's binary data\nconst item = $input.first();\n\nlet photoBase64 = '';\nlet hasPhoto = false;\n\nconsole.log('=== PHOTO EXTRACTION START ===');\n\n// The files are in item.binary (as shown in your Binary tab)\nif (item.binary && item.binary.profile_photo) {\n  console.log('✅ Found profile_photo in binary data');\n  \n  try {\n    const photoData = item.binary.profile_photo;\n    console.log('Photo info:', {\n      fileName: photoData.fileName,\n      fileExtension: photoData.fileExtension,\n      mimeType: photoData.mimeType,\n      fileSize: photoData.fileSize\n    });\n    \n    // CRITICAL FIX: Get the actual binary buffer and convert to base64\n    const buffer = await this.helpers.getBinaryDataBuffer(0, 'profile_photo');\n    photoBase64 = buffer.toString('base64');\n    hasPhoto = true;\n    \n    console.log('✅ Photo converted to base64 successfully!');\n    console.log('Base64 length:', photoBase64.length);\n    console.log('First 100 chars:', photoBase64.substring(0, 100));\n    \n  } catch (error) {\n    console.log('❌ Error extracting photo:', error.message);\n    console.log('Error stack:', error.stack);\n  }\n} else {\n  console.log('❌ No profile_photo found in binary data');\n  if (item.binary) {\n    console.log('Available binary fields:', Object.keys(item.binary));\n  } else {\n    console.log('No binary data at all');\n  }\n}\n\nconsole.log('=== PHOTO EXTRACTION END ===');\nconsole.log('Result - Has photo:', hasPhoto);\n\n// Return the item with photo data added to json\nreturn {\n  json: {\n    ...item.json,\n    has_photo: hasPhoto,\n    photo_base64: photoBase64\n  },\n  binary: item.binary  // Keep the binary data for other nodes\n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -3232,
+        1936
+      ],
+      "id": "9e9cb7a8-b209-404f-bc66-85ff2af8dfdd",
+      "name": "Prepare the Photo1"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "chatgpt-4o-latest",
+          "mode": "list",
+          "cachedResultName": "CHATGPT-4O-LATEST"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=<context>\n<original_resume>\n{{ $json.text }}\n</original_resume>\n<job_details>\n<job_description>\n{{ $('Webhook1').item.json.body.job_description }}\n</job_description>\n<target_role>{{ $('Webhook1').item.json.body.job_role }}</target_role>\n<company>{{ $('Webhook1').item.json.body.company_name }}</company>\n<industry>{{ $('Webhook1').item.json.body.industry }}</industry>\n<experience_level>{{ $('Webhook1').item.json.body.experience_level }}</experience_level>\n</job_details>\n</context>\n<instructions>\n<step_1>\nANALYZE the resume against the job description:\n\nCalculate alignment score (0-100) based on keyword matches and relevance\nIdentify all matching keywords between resume and job description\nIdentify critical missing keywords from job description\nList the resume's strengths\nIdentify gaps and weaknesses\nProvide specific, actionable recommendations\n</step_1>\n\n<step_2>\nIMPROVE the resume using ONLY the candidate's actual information:\n\nExtract ALL contact details EXACTLY as written in the original resume\nUse the candidate's ACTUAL name, email, phone, location from the resume\nIncorporate missing keywords naturally where they fit the candidate's EXISTING experience\nStrengthen weak sections identified in gaps\nOptimize for ATS scanning (proper formatting, keyword density)\nAdd metrics and quantifiable achievements where possible using ACTUAL data\nDO NOT fabricate any information\nPrioritize impact statements over responsibilities\nUse strong action verbs\n</step_2>\n</instructions>\n\n<output_format>\nReturn ONLY valid JSON with this EXACT structure (no markdown blocks, no code fences, no explanations):\n{\n\"analysis\": {\n\"alignment_score\": 85,\n\"matching_keywords\": [\"actual keyword from resume\", \"another keyword\"],\n\"missing_keywords\": [\"keyword from job description\", \"another missing keyword\"],\n\"strengths\": [\"actual strength from resume\", \"another strength\"],\n\"gaps\": [\"actual gap identified\", \"another gap\"],\n\"recommendations\": [\"specific recommendation\", \"another recommendation\"]\n},\n\"improved_resume\": {\n\"contact\": {\n\"name\": \"ACTUAL NAME FROM RESUME - DO NOT MAKE UP\",\n\"email\": \"ACTUAL EMAIL FROM RESUME - DO NOT MAKE UP\",\n\"phone\": \"ACTUAL PHONE FROM RESUME OR EMPTY STRING\",\n\"location\": \"ACTUAL LOCATION FROM RESUME OR EMPTY STRING\",\n\"linkedin\": \"ACTUAL LINKEDIN FROM RESUME OR EMPTY STRING\",\n\"portfolio\": \"ACTUAL PORTFOLIO FROM RESUME OR EMPTY STRING\"\n},\n\"summary\": \"2-3 powerful sentences optimized for target role using ACTUAL candidate background\",\n\"experience\": [\n{\n\"title\": \"ACTUAL Job Title from resume\",\n\"company\": \"ACTUAL Company Name from resume\",\n\"duration\": \"ACTUAL dates from resume\",\n\"achievements\": [\n\"Achievement with quantifiable impact using ACTUAL data\",\n\"Achievement demonstrating leadership with ACTUAL metrics\",\n\"Achievement showing technical skills with ACTUAL results\"\n]\n}\n],\n\"education\": [\n{\n\"degree\": \"ACTUAL Degree from resume\",\n\"institution\": \"ACTUAL University from resume\",\n\"year\": \"ACTUAL year from resume\",\n\"details\": \"ACTUAL details from resume or empty string\"\n}\n],\n\"skills\": {\n\"technical\": [\"ACTUAL skill from resume\", \"ACTUAL skill from resume\"],\n\"tools\": [\"ACTUAL tool from resume\", \"ACTUAL tool from resume\"],\n\"soft_skills\": [\"ACTUAL soft skill from resume or inferred from experience\"]\n},\n\"projects\": [\n{\n\"name\": \"ACTUAL Project Name from resume\",\n\"description\": \"ACTUAL description from resume enhanced with keywords\",\n\"technologies\": [\"ACTUAL tech from resume\", \"ACTUAL tech from resume\"],\n\"impact\": \"ACTUAL impact from resume or empty string\"\n}\n],\n\"certifications\": [\"ACTUAL certification from resume\", \"ACTUAL certification from resume\"],\n\"improvements_made\": [\n\"Added missing keyword: X in Y section\",\n\"Quantified achievement in Z role using existing data\",\n\"Strengthened summary with industry-specific terms\"\n]\n}\n}\n</output_format>\n<data_extraction_rules>\nCRITICAL: You must extract ACTUAL data from the resume text provided above:\n\nRead the entire resume text carefully\nExtract the candidate's real name, email, phone number\nExtract actual job titles, companies, and dates\nExtract actual skills, projects, and achievements\nDO NOT use any placeholder or example data\nIf a field cannot be found, use empty string \"\" - DO NOT guess or make up data\n</data_extraction_rules>\n\n<error_handling>\nIf the resume text is too short, corrupted, or unreadable:\nReturn this error JSON:\n{\n\"error\": true,\n\"message\": \"Unable to extract resume information. Resume text appears to be corrupted or too short.\",\n\"extracted_text_length\": LENGTH_OF_TEXT,\n\"suggestion\": \"Please upload a valid text-based PDF resume.\"\n}\n</error_handling>\n<critical_reminder>\n\nResponse must START with { and END with }\nNo markdown code blocks (no ```json)\nNo explanations before or after JSON\nAll strings properly escaped\nNo trailing commas\nUSE ONLY ACTUAL DATA FROM THE RESUME - NO PLACEHOLDERS\nDO NOT INVENT NAMES, EMAILS, PHONE NUMBERS, OR ANY CONTACT INFO\n</critical_reminder>\n<json_formatting>\nCRITICAL JSON RULES:\n1. Use double quotes for all keys and string values\n2. No trailing commas anywhere\n3. No line breaks inside string values\n4. Escape all special characters properly\n5. Return compact JSON on a single line if possible\n</json_formatting>"
+            },
+            {
+              "content": "=<role>\nYou are an expert ATS (Applicant Tracking System) optimization specialist and professional resume writer with 15+ years of experience. You have helped thousands of candidates land interviews at top companies by optimizing their resumes for both ATS systems and human recruiters.\n</role>\n<expertise>\n\nATS keyword optimization and ranking algorithms\nResume structure and formatting best practices\nIndustry-specific terminology and requirements\nAchievement quantification and impact statements\nProfessional summary crafting\n</expertise>\n\n<task>\nYour job is to analyze resumes against job descriptions and create improved, ATS-optimized versions that maintain authenticity while maximizing match scores.\n</task>\n<critical_rules>\n\nNEVER fabricate experience, skills, or achievements\nNEVER invent names, emails, phone numbers, or contact information\nUSE ONLY information present in the original resume\nOnly add keywords that naturally fit the candidate's existing background\nQuantify achievements wherever possible using ONLY existing data\nIf contact information is missing, leave fields empty - DO NOT make up data\nMaintain professional tone and clarity\nReturn ONLY valid JSON - no markdown, no explanations\nIf you cannot extract proper information, return an error in the JSON\n</critical_rules>\n\n<anti_hallucination_rules>\n\nDO NOT use placeholder names like \"John Doe\", \"Jane Smith\"\nDO NOT use placeholder emails like \"<REDACTED_EMAIL>\"\nDO NOT use placeholder phone numbers like \"123-456-7890\"\nDO NOT invent job titles, companies, or dates\nIf a field is unclear or missing, use empty string \"\" or null\nONLY use actual data from the provided resume text\n</anti_hallucination_rules>\n\n",
+              "role": "system"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b08ff688-2706-4ff4-ab73-7701d31fb690",
+      "name": "OpenAI - Analyze & Improve Resume1",
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.3,
+      "position": [
+        -1712,
+        1936
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "<REDACTED_CREDENTIAL_ID>", "name": "<REDACTED_CREDENTIAL_NAME>"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $binary.resume_file.mimeType }}",
+              "operation": "contains",
+              "value2": ".doc"
+            }
+          ]
+        }
+      },
+      "id": "fdbf2626-16c5-4d40-863d-056fe2ef3b08",
+      "name": "If DOCX1",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -1904,
+        2544
+      ],
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify({\n  \"status\": \"error\",\n  \"message\": \"File must be PDF. You uploaded a \" + ($binary.resume_file.mimeType.includes('word') ? \"Word document - convert it: File → Save As → PDF.\" : $binary.resume_file.mimeType.includes('image') ? \"image file - create a proper PDF resume instead.\" : \"wrong format - convert to PDF.\") + \" Ensure file ends with .pdf extension.\"\n}) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        -2832,
+        2064
+      ],
+      "id": "c4d7288b-3eab-4bce-8267-f5377a51e1b4",
+      "name": "Respond to Webhook4"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Validate extracted PDF text quality\nconst item = $input.first();\n\nlet extractedText = '';\n\n// Get the extracted text\nif (item.json && item.json.text) {\n  extractedText = item.json.text;\n} else if (item.json && item.json.data) {\n  extractedText = item.json.data;\n}\n\n// Clean and check the text\nconst cleanText = extractedText.trim();\n\nconsole.log('=== PDF TEXT VALIDATION ===');\nconsole.log('Extracted length:', cleanText.length);\nconsole.log('First 200 chars:', cleanText.substring(0, 200));\n\n// Validation checks\nconst validationErrors = [];\n\n// Check 1: Minimum length\nif (cleanText.length < 100) {\n  validationErrors.push('Extracted text is too short (less than 100 characters)');\n}\n\n// Check 2: Check for actual words (not just garbage characters)\nconst words = cleanText.match(/[a-zA-Z]{3,}/g) || [];\nif (words.length < 20) {\n  validationErrors.push('PDF contains too few readable words');\n}\n\n// Check 3: Check if it's mostly special characters/numbers (sign of image PDF)\nconst alphaChars = (cleanText.match(/[a-zA-Z]/g) || []).length;\nconst totalChars = cleanText.length;\nconst alphaRatio = alphaChars / totalChars;\n\nif (alphaRatio < 0.5) {\n  validationErrors.push('PDF appears to be image-based or contains mostly non-text content');\n}\n\n// Check 4: Look for common resume keywords\nconst resumeKeywords = ['experience', 'education', 'skills', 'work', 'university', 'college', 'project', 'name', 'email', 'phone'];\nconst foundKeywords = resumeKeywords.filter(keyword => \n  cleanText.toLowerCase().includes(keyword)\n);\n\nif (foundKeywords.length < 2) {\n  validationErrors.push('PDF does not appear to contain resume content');\n}\n\n// If validation failed, return error\nif (validationErrors.length > 0) {\n  console.error('PDF validation failed:', validationErrors);\n  \n  return [{\n    json: {\n      validation_failed: true,\n      errors: validationErrors,\n      extracted_length: cleanText.length,\n      words_found: words.length,\n      alpha_ratio: alphaRatio,\n      error_response: {\n        status: \"error\",\n        message: \"Your PDF could not be processed properly.\",\n        issue: \"The PDF appears to be image-based (scanned) or does not contain extractable text.\",\n        requirements: [\n          \"PDF must contain selectable/copyable text (not scanned images)\",\n          \"Test your PDF: Open it and try to select/copy text with your cursor\",\n          \"If you cannot copy text from the PDF, it won't work with our system\"\n        ],\n        how_to_fix: {\n          \"if_scanned\": \"Use OCR software to convert your scanned PDF to text-based PDF (Adobe Acrobat, smallpdf.com, or Google Drive)\",\n          \"if_image\": \"Recreate your resume as a proper text-based PDF (not a screenshot)\",\n          \"if_word_doc\": \"Export from Word using File → Save As → PDF (ensure text is selectable)\"\n        },\n        technical_details: validationErrors,\n        tip: \"A good text-based PDF will let you highlight and copy text. Try it before uploading!\"\n      }\n    }\n  }];\n}\n\n// Validation passed - return the text\nconsole.log('✅ PDF validation passed');\nconsole.log('Words found:', words.length);\nconsole.log('Keywords found:', foundKeywords);\n\nreturn [{\n  json: {\n    text: cleanText,\n    validation_passed: true,\n    words_count: words.length,\n    keywords_found: foundKeywords,\n    quality: 'good'\n  },\n  binary: item.binary\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2528,
+        1936
+      ],
+      "id": "8dd1376e-ce34-4226-9818-4743653feef7",
+      "name": "Code in JavaScript2"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "b9a57813-3d6a-4f41-8851-3e6cfa2eb0e9",
+              "leftValue": "={{ $json.validation_failed }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -2320,
+        1936
+      ],
+      "id": "b3e74453-a3ec-42c5-877c-6c98a1129622",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ JSON.stringify({\n  \"status\": \"error\",\n  \"message\": \"PDF contains images, not text. Test: Try selecting text in your PDF with cursor - if you can't, it won't work. Fix: Use OCR tools (smallpdf.com, Adobe) for scanned docs, or export from Word using 'Save As PDF'.\"\n}) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        -2144,
+        1776
+      ],
+      "id": "c4c0986f-ce35-4d3b-bf59-a155502ddc12",
+      "name": "Respond to Webhook5"
+    }
+  ],
+  "connections": {
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Gamma - Create Document1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook1": {
+      "main": [
+        [
+          {
+            "node": "Prepare the Photo1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If PDF1": {
+      "main": [
+        [
+          {
+            "node": "Extract PDF Text1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract PDF Text1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Analysis JSON1": {
+      "main": [
+        [
+          {
+            "node": "OpenAI - Format to Markdown1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI - Format to Markdown1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gamma - Create Document1": {
+      "main": [
+        [
+          {
+            "node": "Download PDF from Gamma1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download PDF from Gamma1": {
+      "main": [
+        [
+          {
+            "node": "Send Email with Attachments1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email with Attachments1": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare the Photo1": {
+      "main": [
+        [
+          {
+            "node": "If PDF1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI - Analyze & Improve Resume1": {
+      "main": [
+        [
+          {
+            "node": "Parse Analysis JSON1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If DOCX1": {
+      "main": [
+        [
+          {
+            "node": "Extract DOCX Text1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript2": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook5",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "OpenAI - Analyze & Improve Resume1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "pinData": {},
+  "triggerCount": 1,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}
